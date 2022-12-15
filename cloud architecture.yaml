@@ -389,231 +389,7 @@ Resources:
       SubnetId: !Ref WebSubnet1
       KeyName: MyKeyPair
 
-# Web tier infrastructure
-  myASG:
-    Type: AWS::AutoScaling::AutoScalingGroup
-    Properties:      
-      LaunchConfigurationName: !Ref myLaunchConfig
-      MaxSize: '3'
-      MinSize: '2'
-      DesiredCapacity: '2'
-      VPCZoneIdentifier:   
-        - !Ref WebSubnet1
-        - !Ref WebSubnet2
-      MetricsCollection: 
-        - Granularity: 1Minute
-          Metrics: 
-            - GroupMinSize
-            - GroupMaxSize
-      TargetGroupARNs: 
-       - Ref: WebTierALBTargetGroup  
 
-  myLaunchConfig: 
-    Type: AWS::AutoScaling::LaunchConfiguration
-    Properties:
-      ImageId: !Ref LatestAmiId
-      SecurityGroups: 
-        - !Ref WebtierSG
-      InstanceType: 
-        !Ref InstanceType
-      KeyName: MyKeyPair   
-      UserData:
-         Fn::Base64: |
-            #!/bin/bash
-            yum update -y
-            yum install -y httpd
-            systemctl start httpd
-            systemctl enable httpd
-            echo '<h1>Hello World</h1>' > /var/www/html/index.html
-
-  WebTierLoadBalancer:
-    Type: "AWS::ElasticLoadBalancingV2::LoadBalancer"
-    Properties:
-      Subnets: 
-       - !Ref WebSubnet1
-       - !Ref WebSubnet2
-      SecurityGroups: 
-        - !GetAtt ApplicationLoadBalancerSG.GroupId 
-
-  WebTierListener:
-    Type: "AWS::ElasticLoadBalancingV2::Listener"
-    Properties:
-      DefaultActions:
-        - Type: forward
-          TargetGroupArn: !Ref WebTierALBTargetGroup
-      LoadBalancerArn: !Ref WebTierLoadBalancer
-      Port: "80"
-      Protocol: HTTP
-
-  WebTierALBTargetGroup:
-    Type: "AWS::ElasticLoadBalancingV2::TargetGroup"
-    Properties:
-      HealthCheckIntervalSeconds: 30
-      HealthCheckTimeoutSeconds: 5
-      HealthyThresholdCount: 2
-      Port: 80
-      Protocol: HTTP
-      UnhealthyThresholdCount: 5
-      VpcId: !Ref VPC
- 
-  CPUAlarmHigh:
-    Type: "AWS::CloudWatch::Alarm"
-    Properties:
-      AlarmDescription: Scale up if CPU > 50% for 1 minutes
-      MetricName: CPUUtilization
-      Namespace: AWS/EC2
-      Statistic: Average
-      Period: "60"
-      EvaluationPeriods: "1"
-      Threshold: "50"
-      AlarmActions:
-        - !Ref WebServerScaleUpPolicy
-      Dimensions:
-        - Name: AutoScalingGroupName
-          Value: !Ref myASG
-      ComparisonOperator: GreaterThanThreshold
-
-  CPUAlarmLow:
-    Type: "AWS::CloudWatch::Alarm"
-    Properties:
-      AlarmDescription: Scale down if CPU < 50% for 10 minutes
-      MetricName: CPUUtilization
-      Namespace: AWS/EC2
-      Statistic: Average
-      Period: "300"
-      EvaluationPeriods: "2"
-      Threshold: "50"
-      AlarmActions:
-        - !Ref WebServerScaleDownPolicy
-      Dimensions:
-        - Name: AutoScalingGroupName
-          Value: !Ref myASG
-      ComparisonOperator: LessThanThreshold
-
-  WebServerScaleUpPolicy:
-    Type: "AWS::AutoScaling::ScalingPolicy"
-    Properties:
-      AdjustmentType: ChangeInCapacity
-      AutoScalingGroupName: !Ref myASG
-      Cooldown: "60"
-      ScalingAdjustment: "1"
-
-  WebServerScaleDownPolicy:
-    Type: "AWS::AutoScaling::ScalingPolicy"
-    Properties:
-      AdjustmentType: ChangeInCapacity
-      AutoScalingGroupName: !Ref myASG
-      Cooldown: "60"
-      ScalingAdjustment: "-1"
-
-# App Tier Autoscaling group
-  AppTierASG:
-    Type: AWS::AutoScaling::AutoScalingGroup
-    Properties:
-      LaunchConfigurationName: !Ref AppTierLaunchConfig
-      MaxSize: '3'
-      MinSize: '2'
-      DesiredCapacity: '2'
-      VPCZoneIdentifier:   
-        - !Ref AppSubnet1
-        - !Ref AppSubnet2
-      MetricsCollection: 
-        - Granularity: 1Minute
-          Metrics: 
-            - GroupMinSize
-            - GroupMaxSize
-      TargetGroupARNs: 
-       - Ref: AppTierTargetGroup   
-
-  AppTierLaunchConfig: 
-    Type: AWS::AutoScaling::LaunchConfiguration
-    Properties:
-      ImageId: !Ref LatestAmiId
-      SecurityGroups: 
-        - !Ref AppTierSG
-      InstanceType: 
-        !Ref InstanceType
-      KeyName: MyKeyPair  
-
-  AppTierLoadBalancer:
-    Type: "AWS::ElasticLoadBalancingV2::LoadBalancer"
-    Properties:
-      Subnets: 
-       - !Ref AppSubnet1
-       - !Ref AppSubnet2
-      SecurityGroups: 
-       - !GetAtt InternalLoadBalancerSG.GroupId  
-
-  AppTierListener:
-    Type: "AWS::ElasticLoadBalancingV2::Listener"
-    Properties:
-      DefaultActions:
-        - Type: forward
-          TargetGroupArn: !Ref AppTierTargetGroup
-      LoadBalancerArn: !Ref AppTierLoadBalancer
-      Port: "80"
-      Protocol: HTTP
-
-  AppTierTargetGroup:
-    Type: "AWS::ElasticLoadBalancingV2::TargetGroup"
-    Properties:
-      HealthCheckIntervalSeconds: 30
-      HealthCheckTimeoutSeconds: 5
-      HealthyThresholdCount: 2
-      Port: 80
-      Protocol: HTTP
-      UnhealthyThresholdCount: 5
-      VpcId: !Ref VPC
-
-  CPUAlarmHigh:
-    Type: "AWS::CloudWatch::Alarm"
-    Properties:
-      AlarmDescription: Scale-up if CPU > 50% for 1 minutes
-      MetricName: CPUUtilization
-      Namespace: AWS/EC2
-      Statistic: Average
-      Period: "60"
-      EvaluationPeriods: "1"
-      Threshold: "50"
-      AlarmActions:
-        - !Ref AppServerScaleUpPolicy
-      Dimensions:
-        - Name: AutoScalingGroupName
-          Value: !Ref AppTierASG
-      ComparisonOperator: GreaterThanThreshold
-
-  CPUAlarmLow:
-    Type: "AWS::CloudWatch::Alarm"
-    Properties:
-      AlarmDescription: Scale-down if CPU < 50% for 10 minutes
-      MetricName: CPUUtilization
-      Namespace: AWS/EC2
-      Statistic: Average
-      Period: "300"
-      EvaluationPeriods: "2"
-      Threshold: "50"
-      AlarmActions:
-        - !Ref AppServerScaleDownPolicy
-      Dimensions:
-        - Name: AutoScalingGroupName
-          Value: !Ref AppTierASG
-      ComparisonOperator: LessThanThreshold
-
-  AppServerScaleUpPolicy:
-    Type: "AWS::AutoScaling::ScalingPolicy"
-    Properties:
-      AdjustmentType: ChangeInCapacity
-      AutoScalingGroupName: !Ref AppTierASG
-      Cooldown: "60"
-      ScalingAdjustment: "1"
-
-  AppServerScaleDownPolicy:
-    Type: "AWS::AutoScaling::ScalingPolicy"
-    Properties:
-      AdjustmentType: ChangeInCapacity
-      AutoScalingGroupName: !Ref AppTierASG
-      Cooldown: "60"
-      ScalingAdjustment: "-1"
 
   Database:
     Type: AWS::RDS::DBInstance
@@ -624,6 +400,7 @@ Resources:
       PubliclyAccessible: 'false'
       DBInstanceClass: db.t2.micro
       Engine: MySQL
+      DBName: Test
       MasterUsername: MyName
       MasterUserPassword: MyPassword
       DBSubnetGroupName: !Ref DatabaseSubnetGroup
@@ -637,3 +414,70 @@ Resources:
       SubnetIds: 
        - !Ref DatabaseSubnet1
        - !Ref DatabaseSubnet2
+
+Outputs:
+  WebSubnet1:
+    Description: Public subnet 1
+    Export:
+      Name: !Sub ${EnvironmentName}-WebSubnet1
+    Value: !Ref WebSubnet1
+
+  WebSubnet2:
+    Description: Public subnet 2
+    Export:
+      Name: !Sub ${EnvironmentName}-WebSubnet2
+    Value: !Ref WebSubnet2
+
+  LatestAmiId:
+    Description: Latest AMI ID
+    Export:
+      Name: !Sub ${EnvironmentName}-LatestAmiId
+    Value: !Ref LatestAmiId
+
+  WebtierSG:
+    Description: Web Tier Security Group
+    Export:
+      Name: !Sub ${EnvironmentName}-WebtierSG
+    Value: !Ref WebtierSG
+
+  InstanceType:
+    Description: Instance Type
+    Export:
+      Name: !Sub ${EnvironmentName}-InstanceType
+    Value: !Ref InstanceType
+  
+  ApplicationLoadBalancerSG:
+    Description: Application Load Balancer Security Group
+    Export:
+      Name: !Sub ${EnvironmentName}-ApplicationLoadBalancerSG
+    Value: !Ref ApplicationLoadBalancerSG
+
+  VPC:
+    Description: VPC
+    Export:
+      Name: !Sub ${EnvironmentName}-VPC
+    Value: !Ref VPC
+
+  AppSubnet1:
+    Description: Private Subnet 1
+    Export:
+      Name: !Sub ${EnvironmentName}-AppSubnet1
+    Value: !Ref AppSubnet1
+
+  AppSubnet2:
+    Description: Private Subnet 2
+    Export:
+      Name: !Sub ${EnvironmentName}-AppSubnet2
+    Value: !Ref AppSubnet2
+
+  AppTierSG:
+    Description: App Tier Security Group
+    Export:
+      Name: !Sub ${EnvironmentName}-AppTierSG
+    Value: !Ref AppTierSG
+
+  InternalLoadBalancerSG:
+    Description: Internal Load Balancer Security Group
+    Export:
+      Name: !Sub ${EnvironmentName}-InternalLoadBalancerSG
+    Value: !Ref InternalLoadBalancerSG

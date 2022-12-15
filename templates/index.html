@@ -3,12 +3,30 @@
 <head>
     <meta charset='utf-8'>
     <meta http-equiv='X-UA-Compatible' content='IE=edge'>
-    <title>Fake Video Studios</title>
+    <title>SignUp</title>
     <meta name='viewport' content='width=device-width, initial-scale=1'>
-    <link rel='stylesheet' type='text/css' media='screen' href='main.css'>
+    <link rel='stylesheet' type='text/css' media='screen' href='styles.css'>
     <script src='main.js'></script>
+    
 </head>
 <body>
+    <div>
+        <form method="post" action = "/signup">
+            <h2><strong>Create</strong> an account.</h2>
+            <div><input type="text" name="name" placeholder="Name"></div>
+            <div><input type="email" name="email" placeholder="Email"></div>
+            <div><input type="password" name="password" placeholder="Password "></div>
+            <div>
+                <div>
+                    <label><input type="checkbox">I agree to the license terms.</label>
+                </div>
+            </div>
+            <div>
+            <input type="submit" name="submit" value="Sign up">
+                </div>
+            <p>Have an account? <a href="{{url_for('login')}}">Log in here.</a></p>
+        </form>
+    </div>
     
 </body>
 </html>
