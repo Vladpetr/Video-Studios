@@ -365,7 +365,7 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     DependsOn: VPC
     Properties:
-      GroupDescription: Apptier to database tier
+      GroupDescription: App tier to database tier
       VpcId: !Ref VPC
       SecurityGroupIngress:
         - IpProtocol: tcp
@@ -450,7 +450,7 @@ Outputs:
     Description: Application Load Balancer Security Group
     Export:
       Name: !Sub ${EnvironmentName}-ApplicationLoadBalancerSG
-    Value: !Ref ApplicationLoadBalancerSG
+    Value: !GetAtt ApplicationLoadBalancerSG.GroupId
 
   VPC:
     Description: VPC
@@ -480,4 +480,6 @@ Outputs:
     Description: Internal Load Balancer Security Group
     Export:
       Name: !Sub ${EnvironmentName}-InternalLoadBalancerSG
-    Value: !Ref InternalLoadBalancerSG
+    Value: !GetAtt InternalLoadBalancerSG.GroupId
+
+  
