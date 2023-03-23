@@ -1,6 +1,8 @@
 # Fake-Video-Studios
 Cloud architecture for a website where people can log on, upload a photo of a character, and a long script. The website then takes about 15 minutes to generate a short video in which that character acts out the script.
 
+Please find the link to the tutorial <a href="https://medium.com/@vladyslavpetrenko/create-cloud-infrastructure-for-a-web-app-using-aws-cloudformation-bc320bddbfe3">here</a>.
+
 ## Structure
 AWS CloudFormation template: *cloud architecture.yaml*
 
